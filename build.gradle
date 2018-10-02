@@ -1,0 +1,43 @@
+/***************************************************************************************************
+ * Copyright (C) 2018 Iteration
+ * License for sources distribution: see file 'LICENSE' in the project's root
+ **************************************************************************************************/
+
+
+apply plugin: 'application'
+mainClassName = "com.iteration.fxuml.FxUml"
+
+
+sourceSets {
+    main {
+        resources {
+            srcDirs "src/main/resources", "src/main/configs"
+        }
+    }
+}
+
+
+repositories {
+    jcenter()
+}
+
+
+dependencies {
+    testImplementation(
+            'org.junit.jupiter:junit-jupiter-api:5.2.0'
+    )
+    testRuntimeOnly(
+            'org.junit.jupiter:junit-jupiter-engine:5.2.0',
+            'org.junit.vintage:junit-vintage-engine:5.2.0'
+    )
+}
+
+
+test {
+    useJUnitPlatform {
+        excludeTags 'slow'
+        includeEngines 'junit-jupiter', 'junit-vintage'
+    }
+    failFast = true
+}
+
