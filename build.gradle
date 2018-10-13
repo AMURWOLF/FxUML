@@ -5,6 +5,10 @@
 
 
 apply plugin: 'application'
+apply plugin : 'java'
+apply plugin : 'eclipse'
+
+
 mainClassName = "com.iteration.fxuml.FxUml"
 
 
@@ -18,7 +22,12 @@ sourceSets {
 
 
 repositories {
-    jcenter()
+    mavenCentral()
+}
+
+
+dependencies {
+    implementation 'net.sourceforge.plantuml:plantuml:8059'
 }
 
 
@@ -40,4 +49,17 @@ test {
     }
     failFast = true
 }
+
+
+/*
+ *	For debugging in Eclipse. Run command in terminal:
+ *	./gradlew -DDEBUG=true run
+ *	then debug remote java application in Eclipse (Socket attach, localhost, 9099, allow)
+*/
+tasks.withType(JavaExec) {
+    if (System.getProperty('DEBUG', 'false') == 'true') {
+        jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9099'
+    }
+}
+
 
