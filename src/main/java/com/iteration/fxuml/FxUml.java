@@ -87,6 +87,7 @@ public class FxUml extends Application {
         
         final var scene = new Scene(layout, 800, 600);
         scene.getStylesheets().add("FxUml.css");
+        scene.getStylesheets().add("java-keywords.css");
         this.umlTabPane.prefWidthProperty().bind(scene.widthProperty());
         this.umlTabPane.prefHeightProperty().bind(scene.heightProperty());
         

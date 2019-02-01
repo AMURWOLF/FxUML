@@ -28,16 +28,30 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import net.sourceforge.plantuml.SourceStringReader;
+
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.fxmisc.flowless.VirtualizedScrollPane;
+import org.fxmisc.richtext.CodeArea;
+import org.fxmisc.richtext.LineNumberFactory;
+import org.fxmisc.richtext.model.StyleSpans;
+import org.fxmisc.richtext.model.StyleSpansBuilder;
 
 
 
@@ -53,13 +67,30 @@ public class TabUml extends Tab {
     ////    F I E L D S    ////
     ///////////////////////////
     
-    private TextArea textArea = new TextArea();
+    private CodeArea codeArea = new CodeArea();
     
     /** Absolute path of file where you saved/read the code of UML */
     public StringProperty filename = new SimpleStringProperty();
     
     /** Indicator for unsaved changes in editor */
     public BooleanProperty isModified = new SimpleBooleanProperty(false);
+    
+    private static final String[] KEYWORDS = new String[] {
+            "startuml", "enduml",
+            "start", "stop", 
+            "if", "then", "else", "endif"
+    };
+    
+    private static final String KEYWORD_PATTERN   = "\\b(" + String.join("|", TabUml.KEYWORDS)
+            + ")\\b";
+    private static final String PAREN_PATTERN     = "\\((.|\\R)*?\\)";
+    private static final String ACTION_PATTERN   = ":(.|\\R)*?\\;";
+    
+    private static final Pattern PATTERN = Pattern.compile(
+            "(?<KEYWORD>" + TabUml.KEYWORD_PATTERN + ")"
+                    + "|(?<PAREN>" + TabUml.PAREN_PATTERN + ")"
+                    + "|(?<ACTION>" + TabUml.ACTION_PATTERN + ")"
+    );
     
     ////////////////////////////////////////////
     ////    S T A T I C    M E T H O D S    ////
@@ -74,12 +105,21 @@ public class TabUml extends Tab {
     public TabUml(FxUml parent) {
         
         this.setText("New UML");
-        this.textArea.setText("@startuml\n\n@enduml\n\n");
+        this.codeArea.setParagraphGraphicFactory(LineNumberFactory.get(this.codeArea));
+        this.codeArea
+                .multiPlainChanges()
+                .successionEnds(Duration.ofMillis(500))
+                .subscribe(
+                        ignore -> this.codeArea
+                                .setStyleSpans(0, TabUml.computeHighlighting(this.codeArea.getText()))
+                );
         
-        this.setContent(this.textArea);
-        Platform.runLater(() -> this.textArea.requestFocus());
-        this.textArea.setOnKeyReleased(this::handleKeyPress);
-        this.textArea.textProperty()
+        this.codeArea.replaceText(0, 0, "@startuml\n\n@enduml\n");
+        
+        this.setContent(new StackPane(new VirtualizedScrollPane<>(this.codeArea)));
+        Platform.runLater(() -> this.codeArea.requestFocus());
+        this.codeArea.setOnKeyReleased(this::handleKeyPress);
+        this.codeArea.textProperty()
                 .addListener((observable, oldValue, newValue) -> this.isModified.set(true));
         
         this.isModified.addListener((observable, oldValue, newValue) -> {
@@ -99,11 +139,40 @@ public class TabUml extends Tab {
         
         this.setOnCloseRequest(this::confirmClosing);
         this.setOnClosed(parent::checkIfAllTabsClosed);
+        
+        final ContextMenu contextMenu = new ContextMenu();
+        MenuItem cut = new MenuItem("Cut");
+        MenuItem copy = new MenuItem("Copy");
+        MenuItem paste = new MenuItem("Paste");
+        contextMenu.getItems().addAll(cut, copy, paste);
+        this.codeArea.setContextMenu(contextMenu);
+        
     }
+    
+    
     
     /////////////////////////////
     ////    M E T H O D S    ////
     /////////////////////////////
+    
+    private static StyleSpans<Collection<String>> computeHighlighting(String text) {
+        Matcher matcher = TabUml.PATTERN.matcher(text);
+        int lastKwEnd = 0;
+        StyleSpansBuilder<Collection<String>> spansBuilder = new StyleSpansBuilder<>();
+        while (matcher.find()) {
+            String styleClass = matcher
+                    .group("KEYWORD") != null ? "keyword"
+                            : matcher.group("PAREN") != null ? "paren" 
+                                    : matcher.group("ACTION") != null ? "comment" 
+                                            : null;
+            /* never happens */ assert styleClass != null;
+            spansBuilder.add(Collections.emptyList(), matcher.start() - lastKwEnd);
+            spansBuilder.add(Collections.singleton(styleClass), matcher.end() - matcher.start());
+            lastKwEnd = matcher.end();
+        }
+        spansBuilder.add(Collections.emptyList(), text.length() - lastKwEnd);
+        return spansBuilder.create();
+    }
     
     
     
@@ -119,14 +188,14 @@ public class TabUml extends Tab {
     
     private void loadTextFromFile(File source) {
         
-        this.textArea.clear();
+        this.codeArea.clear();
         try (
                 var fstream = new FileInputStream(source);
                 var reader = new BufferedReader(new InputStreamReader(fstream, "UTF8"));
         ) {
             String str;
             while ((str = reader.readLine()) != null) {
-                this.textArea.appendText(str + "\n");
+                this.codeArea.appendText(str + "\n");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -186,7 +255,7 @@ public class TabUml extends Tab {
                 var fos = new FileOutputStream(file);
                 var bos = new BufferedOutputStream(fos)
         ) {
-            bos.write(this.textArea.getText().getBytes());
+            bos.write(this.codeArea.getText().getBytes());
             bos.flush();
             success = true;
             return success;
@@ -227,7 +296,7 @@ public class TabUml extends Tab {
     
     
     public void focus() {
-        Platform.runLater(() -> this.textArea.requestFocus());
+        Platform.runLater(() -> this.codeArea.requestFocus());
     }
     
     
@@ -253,7 +322,7 @@ public class TabUml extends Tab {
      */
     public boolean renderAndShow() {
         
-        if (this.textArea.getText().isEmpty()) {
+        if (this.codeArea.getText().isEmpty()) {
             DialogUtils.showErrorMessage("Пустая вкладка", "");
             return false;
         }
@@ -269,7 +338,7 @@ public class TabUml extends Tab {
         fileName += ".png";
         File fileOutput = new File(fileName);
         
-        boolean rendered = TabUml.render(this.textArea.getText(), fileOutput);
+        boolean rendered = TabUml.render(this.codeArea.getText(), fileOutput);
         if (rendered) {
             TabUml.showImageFileInDialog(fileOutput);
         }
