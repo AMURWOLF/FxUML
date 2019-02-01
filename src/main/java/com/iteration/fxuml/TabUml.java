@@ -163,7 +163,7 @@ public class TabUml extends Tab {
             String styleClass = matcher
                     .group("KEYWORD") != null ? "keyword"
                             : matcher.group("PAREN") != null ? "paren" 
-                                    : matcher.group("ACTION") != null ? "comment" 
+                                    : matcher.group("ACTION") != null ? "action" 
                                             : null;
             /* never happens */ assert styleClass != null;
             spansBuilder.add(Collections.emptyList(), matcher.start() - lastKwEnd);
