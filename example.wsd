@@ -1,15 +1,15 @@
 @startuml
 start
-:Вывалить мысли
-в текст;
-if (Бред?) then (Возможно)
-    :Дать посмотреть коллеге;
-    if (Сойдет?) then (Да)
-    else (Нет)
-        :Помедитировать над текстом;
+:Spill some ideas
+into text;
+if (Nonsense?) then (Maybe)
+    :Send to friend for review;
+    if (Like?) then (Yes)
+    else (No)
+        :Improve text;
     endif
-    :Разместить на //Хабре//;
-else (Точно)
+    :Blog to //some.portal.org//;
+else (Of course)
     stop
 endif
 stop

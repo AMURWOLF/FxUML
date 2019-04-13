@@ -58,7 +58,7 @@ public class DialogUtils {
         alert.setContentText(e.getMessage());
         
         DialogPane dialogPane = alert.getDialogPane();
-        dialogPane.getStylesheets().add("exception.css");
+        dialogPane.getStylesheets().add("fxuml.css");
         dialogPane.getStyleClass().add("exception");
         
         StringWriter sw = new StringWriter();
@@ -96,6 +96,10 @@ public class DialogUtils {
         alert.setHeaderText(header);
         alert.setContentText(content);
         
+        DialogPane dialogPane = alert.getDialogPane();
+        dialogPane.getStylesheets().add("fxuml.css");
+        dialogPane.getStyleClass().add("exception");
+
         alert.showAndWait();
     }
     
